@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<button class="back-btn" onclick="history.back()">← Kembali</button>
+<h2>File Terbaru</h2>
+<div class="breadcrumb">
+  <a href="{{ url_for('main.index') }}">Mini-Cloud</a>
+  {% if current_path != 'mini-cloud' %}
+    / {{ current_path }}
+  {% endif %}
+</div>
+<hr>
+
+<div class="grid files">
+  {% for f in files %}
+<div class="card file-card">
+  <div class="card-left">
+    <i class="fa-solid {{ f.icon_class }}"></i>
+    <div class="file-info">
+      <div class="card-name">{{ f.name }}</div>
+      <div class="meta">{{ f.mtime | datetimeformat }}</div>
+    </div>
+  </div>
+
+  <div class="card-right">
+  <button class="share-btn" data-path="{{ f.path }}" title="Bagikan">
+  <i class="fa-solid fa-share-nodes"></i>
+  </button>
+
+    <button class="favorite-btn {% if f.path in favorites %}active{% endif %}"
+        data-path="{{ f.path }}"
+        title="Favorit">
+  ★
+</button>
+
+    <div class="card-actions">
+      <button class="preview-btn"
+              data-filename="{{ f.name }}"
+              data-path="{{ f.path }}">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+      <a href="{{ url_for('main.download_file', filename=f.path) }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+  {% else %}
+    <p>Tidak ada file</p>
+  {% endfor %}
+</div>
+{% endblock %}

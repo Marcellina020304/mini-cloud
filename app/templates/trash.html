@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<button class="back-btn" onclick="history.back()">← Kembali</button>
+<h2>Sampah</h2>
+<div class="breadcrumb">
+  <a href="{{ url_for('main.index') }}">Mini-Cloud</a>
+  {% if current_path != 'mini-cloud' %}
+    / {{ current_path }}
+  {% endif %}
+</div>
+<hr>
+
+<div class="grid files">
+  {% for f in files %}
+<div class="card file-card trash-card">
+  <div class="card-left">
+    <i class="fa-solid fa-file"></i>
+    <div class="file-info">
+      <div class="card-name">{{ f.name }}</div>
+      <div class="meta">Dihapus: {{ f.mtime | datetimeformat }}</div>
+    </div>
+  </div>
+
+  <div class="card-right">
+  <button class="share-btn"
+      data-path="{{ f.path }}"
+      title="Bagikan">
+  <i class="fa-solid fa-share-nodes"></i>
+  </button>
+    <div class="card-actions">
+      <button onclick="restoreFile('{{ f.name }}', event)">
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+      <button onclick="deletePermanent('{{ f.name }}', event)">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+  {% else %}
+    <p>Tidak ada file di Sampah</p>
+  {% endfor %}
+</div>
+{% endblock %}

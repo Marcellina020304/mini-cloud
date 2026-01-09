@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mini-Cloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body>
+
+{% if session.get('user') %}
+<aside class="sidebar">
+  <div class="side-head">
+    <h1><i class="fa-solid fa-cloud"></i> Mini-Cloud</h1>
+  </div>
+
+  <div class="side-section">
+    <h2>Action</h2>
+
+<!-- FORM UPLOAD -->
+<form action="{{ url_for('main.upload_file_or_folder') }}" 
+      method="post" enctype="multipart/form-data">
+
+    <input type="hidden" name="dest_path" value="{{ current_subpath or '' }}">
+    <h3>Upload File</h3>
+    <div class="upload-row">
+        <input type="file" name="files" multiple>
+        <button type="submit" class="upload-btn"><i class="fa fa-upload"></i></button>
+    </div>
+    <h4>Max Upload 1GB</h4>
+    <h3>Upload Folder</h3>
+    <div class="upload-row" style="margin-top:6px;">
+        <input type="file" name="folder_files" webkitdirectory directory multiple>
+        <button type="submit" class="upload-btn"><i class="fa fa-folder-open"></i></button>
+    </div>
+    <h4>Max Upload 1GB</h4>
+</form>
+
+<!-- FORM NEW FOLDER -->
+<form action="{{ url_for('main.create_folder') }}" method="post">
+    <input type="hidden" name="dest_path" value="{{ current_subpath or '' }}">
+    <h3>+ New Folder</h3>
+    <div class="file-row">
+        <input type="text" name="folder_name" placeholder="Nama folder" required>
+        <button class="btn" type="submit"><i class="fa-solid fa-folder-plus"></i></button>
+    </div>
+</form>
+
+  </div>
+
+  <div class="side-section">
+    <h2>Navigation</h2>
+    <a class="nav-link" href="{{ url_for('main.recent') }}">
+      <i class="fa-solid fa-clock-rotate-left"></i> Terbaru
+    </a>
+    <a class="nav-link" href="{{ url_for('main.favorites') }}">
+      <i class="fa-solid fa-star"></i> Favorit
+    </a>
+    <a class="nav-link" href="{{ url_for('main.trash') }}">
+      <i class="fa-solid fa-trash"></i> Sampah
+    </a>
+  </div>
+
+  <div class="side-section">
+    <h2>Status</h2>
+    <div class="storage-row">
+      <i class="fa-solid fa-cloud"></i>
+      <div>
+      <div class="storage-bar-outer">
+          <div class="storage-bar-inner" style="width: {{ (storage_used / storage_total) * 100 if storage_total else 0 }}%"></div>
+      </div>
+      <small>{{ storage_used_fmt }} dari 5 GB telah digunakan</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-section logout">
+    <a class="nav-link logout-btn" href="{{ url_for('auth.logout') }}">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </a>
+  </div>
+</aside>
+{% endif %}
+
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);justify-content:center;align-items:center;z-index:1000;">
+    <div style="background:#fff;width:80%;height:80%;position:relative;display:flex;flex-direction:column;">
+        <div style="padding:10px;display:flex;justify-content:space-between;align-items:center;background:#eee;">
+            <span id="previewFilename"></span>
+            <div style="display:flex;align-items:center;gap:5px;">
+                <button id="zoomOut">-</button>
+                <button id="zoomIn">+</button>
+                <span id="pageIndicator">1/1</span>
+                <button id="prevPage" disabled style="opacity:0.4;">Prev</button>
+                <button id="nextPage" disabled style="opacity:0.4;">Next</button>
+                <button id="printBtn">Print</button>
+                <a id="downloadFile" href="#" download>Download</a>
+                <a id="openNewTab" href="#" target="_blank">New Tab</a>
+                <button id="bookmarkBtn">★</button>
+                <button id="previewCloseBtn">Close</button>
+            </div>
+        </div>
+        <div id="previewContent" style="flex:1;overflow:auto;display:flex;justify-content:center;align-items:center;"></div>
+    </div>
+</div>
+
+
+<!-- Script utama -->
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>

@@ -1,0 +1,737 @@
+STRUKTUR PROJECT CLOUD-DOMPUTING
+
+ mini-cloud/ 
+│── Dockerfile 
+│── docker-compose.yml 
+│── nginx/ 
+│ ├── default.conf 
+│ └── nginx.conf 
+│── app/ 
+│ │── app.py 
+│ └── requirements.txt 
+│ │── routes/ 
+│ │ ├── __init__.py 
+│ │ ├── main.py 
+│ │ └── auth.py 
+│ │── templates/ 
+│ │ ├── index.html 
+│ │ ├── base.html 
+│ │ ├── base_public.html 
+│ │ ├── login.html 
+│ │ ├── recent.html 
+│ │ └── trash.html 
+│ │── static/ 
+│ │ └── script.js 
+│ │ └── style.css 
+│ │── uploads/ 
+│ └── .trash/
+
+
+app/routes/auth.py
+from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask_login import login_user, logout_user
+from app import USERS, User
+
+auth_bp = Blueprint("auth", __name__)
+
+@auth_bp.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username in USERS and USERS[username] == password:
+            user = User(id=username)
+            login_user(user)
+            return redirect(url_for("main.index"))
+        else:
+            flash("Username atau password salah", "danger")
+
+    return render_template("login.html")
+
+@auth_bp.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("auth.login"))
+
+
+app/routes/main.py
+import os
+import shutil
+from pathlib import Path
+from flask import (
+    Blueprint, render_template, request, redirect,
+    url_for, send_from_directory, flash
+)
+from flask_login import login_required
+from werkzeug.utils import secure_filename
+import mimetypes
+
+main_bp = Blueprint("main", __name__)
+
+APP_ROOT = Path(__file__).resolve().parent.parent
+UPLOAD_ROOT = APP_ROOT / "uploads"
+TRASH_DIR = UPLOAD_ROOT / ".trash"
+
+def safe_path_join(root: Path, *parts):
+    candidate = (root / Path(*parts)).resolve()
+    if root.resolve() in candidate.parents or candidate == root.resolve():
+        return candidate
+    return None
+
+@main_bp.route("/")
+@login_required
+def index_root():
+    return redirect(url_for("main.index", subpath=""))
+
+@main_bp.route("/folder/<path:subpath>")
+@main_bp.route("/", defaults={"subpath": ""})
+@login_required
+def index(subpath):
+    safe = safe_path_join(UPLOAD_ROOT, subpath)
+    if safe is None or not safe.exists():
+        safe = UPLOAD_ROOT
+
+    folders, files = [], []
+
+    for child in safe.iterdir():
+        if child.name.startswith("."):
+            continue
+        if child.is_dir():
+            folders.append({"name": child.name})
+        else:
+            files.append({
+                "name": child.name,
+                "path": str(child.relative_to(UPLOAD_ROOT)).replace("\\", "/"),
+                "size": child.stat().st_size,
+                "mtime": child.stat().st_mtime,
+            })
+
+    return render_template("index.html",
+                           folders=folders,
+                           files=files,
+                           current_path=str(safe.relative_to(UPLOAD_ROOT)))
+
+@main_bp.route("/upload", methods=["POST"])
+@login_required
+def upload():
+    dest = request.form.get("dest_path", "")
+    safe = safe_path_join(UPLOAD_ROOT, dest) or UPLOAD_ROOT
+
+    files = request.files.getlist("file")
+    for f in files:
+        if f.filename:
+            filename = secure_filename(f.filename)
+            f.save(str(safe / filename))
+
+    return redirect(request.referrer or url_for("main.index"))
+
+@main_bp.route("/delete", methods=["POST"])
+@login_required
+def delete():
+    rel = request.form.get("path")
+    full = safe_path_join(UPLOAD_ROOT, rel)
+    if full and full.exists():
+        shutil.move(str(full), TRASH_DIR)
+    return redirect(url_for("main.index"))
+
+@main_bp.route("/recent")
+@login_required
+def recent():
+    files = []
+
+    for root, dirs, filenames in os.walk(UPLOAD_ROOT):
+        if ".trash" in root:
+            continue
+
+        for f in filenames:
+            full = Path(root) / f
+            stat = full.stat()
+            files.append({
+                "name": f,
+                "path": str(full.relative_to(UPLOAD_ROOT)).replace("\\", "/"),
+                "mtime": stat.st_mtime
+            })
+
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+
+    return render_template("recent.html", files=files)
+
+@main_bp.route("/trash")
+@login_required
+def trash():
+    items = []
+
+    for item in TRASH_DIR.iterdir():
+        items.append({
+            "name": item.name,
+            "is_dir": item.is_dir(),
+            "mtime": item.stat().st_mtime
+        })
+
+    return render_template("trash.html", items=items)
+
+@main_bp.route("/restore/<path:filename>", methods=["POST"])
+@login_required
+def restore(filename):
+    trash_path = TRASH_DIR / filename
+    restore_path = UPLOAD_ROOT / filename
+
+    if not trash_path.exists():
+        flash("File tidak ditemukan", "danger")
+        return redirect(url_for("main.trash"))
+
+    shutil.move(str(trash_path), restore_path)
+    flash("File berhasil direstore", "success")
+    return redirect(url_for("main.trash"))
+
+app/static/script.js
+// Toggle action menu for 3-dots button
+function toggleMenu(btn) {
+  // close other menus
+  document.querySelectorAll('.action-menu').forEach(m => {
+    if (m !== btn.nextElementSibling) m.style.display = 'none';
+  });
+
+  const menu = btn.nextElementSibling;
+  if (!menu) return;
+  menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+
+  // click outside to close
+  setTimeout(() => {
+    window.addEventListener('click', function onDocClick(e) {
+      if (!menu.contains(e.target) && e.target !== btn) {
+        menu.style.display = 'none';
+        window.removeEventListener('click', onDocClick);
+      }
+    });
+  }, 10);
+}
+
+// Preview
+async function openPreview(path) {
+  const modal = document.getElementById('previewModal');
+  const content = document.getElementById('previewContent');
+  content.innerHTML = '<p>Loading preview...</p>';
+  modal.style.display = 'flex';
+
+  try {
+    const res = await fetch('/preview/' + encodeURIComponent(path));
+    if (!res.ok) {
+      content.innerHTML = '<p>Preview not available</p>';
+      return;
+    }
+    const info = await res.json();
+    const mime = info.mime || '';
+    const url = '/uploads/' + info.path;
+
+    if (mime.startsWith('image/')) {
+      content.innerHTML = `<img src="${url}" style="max-width:100%;height:auto;border-radius:6px">`;
+    } else if (mime === 'application/pdf') {
+      content.innerHTML = `<iframe src="${url}" style="width:80vw;height:80vh;border:none"></iframe>`;
+    } else {
+      // fallback: download & show small text
+      const textRes = await fetch(url);
+      const txt = await textRes.text().catch(()=>null);
+      if (txt && txt.length < 200000) {
+        content.innerHTML = `<pre style="white-space:pre-wrap;max-height:80vh;overflow:auto">${escapeHtml(txt)}</pre>`;
+      } else {
+        content.innerHTML = `<p>Preview not available. <a href="/download/${info.path}">Download</a></p>`;
+      }
+    }
+  } catch (err) {
+    content.innerHTML = '<p>Preview error</p>';
+  }
+}
+
+function closePreview(){
+  const modal = document.getElementById('previewModal');
+  const content = document.getElementById('previewContent');
+  modal.style.display = 'none';
+  content.innerHTML = '';
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;");
+}
+
+// close modal on ESC
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closePreview();
+});
+
+app/static/style.css
+:root{
+  --primary: #005eff;
+  --bg-soft: #cddfff;
+  --muted: #6b7280;
+  --white: #ffffff;
+  --card-shadow: rgba(0,0,0,0.06);
+}
+
+/* Basic layout */
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg-soft);color:#0f172a}
+
+/* Sidebar */
+.sidebar{
+  width:350px;
+  background:var(--white);
+  position:fixed;
+  left:0;top:0;bottom:0;
+  padding:18px;
+  border-right:1px solid rgba(0,0,0,0.06);
+}
+.side-head h1{font-size:18px;margin:0;color:var(--primary)}
+.side-section{margin-top:18px}
+.side-section h2{font-size:13px;color:var(--muted);margin:8px 0}
+.side-section h3{font-size:13px;margin:6px 0}
+.file-row{display:flex;gap:8px;align-items:center}
+.file-row input[type="file"]{flex:1;padding:6px}
+.file-row input[type="text"]{flex:1;padding:8px;border:1px solid #e6edf9;border-radius:6px}
+.btn{background:var(--primary);color:white;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.upload-btn{background:var(--primary);color:white;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.nav-link{display:block;color:#0f172a;text-decoration:none;padding:6px 0}
+
+/* Storage bar */
+.storage-row{display:flex;gap:8px;align-items:center}
+.storage-bar-outer{width:150px;height:10px;background:#eef6ff;border-radius:6px;margin-bottom:6px;overflow:hidden}
+.storage-bar-inner{height:10px;background:var(--primary);width:0%}
+
+/* Main content */
+.main{margin-left:360px;padding:28px}
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.title h2{margin:0}
+.path{font-size:12px;color:var(--muted)}
+hr{border:none;border-top:1px solid rgba(0,0,0,0.06);margin:12px 0}
+
+/* grids */
+.grid{display:flex;gap:12px;flex-wrap:wrap}
+.card{background:white;padding:12px;border-radius:8px;box-shadow:0 6px 12px var(--card-shadow);width:180px;position:relative}
+.card-head{display:flex;justify-content:space-between;align-items:center}
+.card-body{margin-top:8px}
+.card-name{font-weight:600;color:#0f172a;word-break:break-all}
+.meta{font-size:12px;color:var(--muted)}
+
+/* action menu */
+.action-btn{background:none;border:none;font-size:18px;cursor:pointer}
+.action-menu{position:absolute;right:10px;top:40px;display:none;background:white;border:1px solid rgba(0,0,0,0.06);box-shadow:0 6px 12px var(--card-shadow);border-radius:6px;overflow:hidden;z-index:20}
+.action-menu .menu-item{display:block;padding:8px 12px;text-decoration:none;color:#0f172a;border:none;background:none;width:100%;text-align:left;cursor:pointer}
+.action-menu .menu-item:hover{background:#f6f8ff}
+
+/* login page */
+.login-page{display:flex;align-items:center;justify-content:center;height:100vh}
+.login-card{background:white;padding:28px;border-radius:12px;box-shadow:0 12px 28px var(--card-shadow);text-align:center;width:360px}
+.login-card i{color:var(--primary)}
+.login-card input{width:100%;padding:10px;margin:10px 0;border-radius:6px;border:1px solid #e6edf9}
+.primary-btn{background:var(--primary);color:white;padding:10px 16px;border:none;border-radius:8px;cursor:pointer}
+
+/* modal */
+.modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-inner{background:white;padding:18px;border-radius:8px;max-width:90%;max-height:90%;overflow:auto;position:relative}
+.modal-close{position:absolute;right:8px;top:6px;border:none;background:none;font-size:22px;cursor:pointer}
+
+/* responsive */
+@media (max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:20px}
+  .card{width:calc(50% - 12px)}
+
+}
+.upload-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;                /* jarak icon dengan text */
+    width: 100%;
+}
+
+.upload-row input[type="file"] {
+    flex: 1;
+    max-width: 100%;         /* biar tidak nabrak sidebar */
+}
+
+.upload-btn {
+    background-color: #005eff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: white;
+    display: flex;
+    align-items: center;
+}
+
+.upload-btn i {
+    font-size: 16px;
+}
+
+app/templates/base_public.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Login - Mini-Cloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+  <main style="padding: 0; margin: 0;">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+
+app/templates/base.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Mini-Cloud</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+
+{% if current_user.is_authenticated %}
+<aside class="sidebar">
+  <div class="side-head">
+    <h1><i class="fa-solid fa-cloud"></i> Mini-Cloud</h1>
+  </div>
+
+  <div class="side-section">
+    <h2>Action</h2>
+
+    <form action="{{ url_for('main.upload_file') }}" method="post" enctype="multipart/form-data">
+      <div class="upload-row">
+        <input type="file" name="file" required>
+        <button type="submit" class="upload-btn"><i class="fa fa-upload"></i></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="side-section">
+    <h2>Navigation</h2>
+    <a class="nav-link" href="{{ url_for('main.recent') }}">
+      <i class="fa-solid fa-clock-rotate-left"></i> Terbaru
+    </a>
+
+    <a class="nav-link" href="{{ url_for('main.trash') }}">
+      <i class="fa-solid fa-trash"></i> Sampah
+    </a>
+  </div>
+
+  <div class="side-section logout">
+    <a class="nav-link logout-btn" href="{{ url_for('auth.logout') }}">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
+    </a>
+  </div>
+</aside>
+{% endif %}
+
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
+app/templates/index.html
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Daftar File</h2>
+<hr>
+
+<div class="grid files">
+
+  {% for f in files %}
+  <div class="card file-card">
+    <div class="card-head">
+      <i class="fa-solid fa-file fa-2x"></i>
+    </div>
+
+    <div class="card-body">
+      <div class="card-name">{{ f.name }}</div>
+
+      <div class="actions">
+        <a class="menu-item" href="{{ url_for('main.download_file', filename=f.name) }}">
+          <i class="fa-solid fa-download"></i> Download
+        </a>
+
+        <button class="menu-item" onclick="openPreview('{{ f.name }}')">
+          <i class="fa-solid fa-eye"></i> Preview
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+    <p>Tidak ada file</p>
+  {% endfor %}
+
+</div>
+
+{% endblock %}
+
+app/templates/login.html
+{% extends "base_public.html" %}
+
+{% block content %}
+<div class="login-page">
+  <div class="login-card">
+    <i class="fa-solid fa-cloud fa-3x"></i>
+    <h2>Login</h2>
+
+    {% if error %}
+      <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button class="primary-btn">Login</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+app/templates/recent.html
+{% extends "base.html" %}
+{% block content %}
+
+<h2>File Terbaru</h2>
+<hr>
+
+<ul>
+  {% for f in files %}
+    <li>
+      <a href="{{ url_for('main.serve_uploads', filename=f.name) }}">
+        {{ f.name }}
+      </a>
+      <small> ({{ f.mtime }}) </small>
+    </li>
+  {% else %}
+    <li>Tidak ada file</li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
+
+app/templates/trash.html
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Sampah</h2>
+<hr>
+
+<div class="grid files">
+  {% for f in files %}
+    <div class="card file-card">
+      <div class="card-body">
+        <div class="card-name">{{ f }}</div>
+      </div>
+    </div>
+  {% else %}
+    <p>Tidak ada file di Sampah</p>
+  {% endfor %}
+</div>
+
+{% endblock %}
+
+app/app.py
+import os
+from pathlib import Path
+import mimetypes
+import shutil
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    session, send_from_directory, flash, jsonify
+)
+from flask_login import LoginManager, UserMixin
+
+from routes.main import main_bp
+from routes.auth import auth_bp
+
+# ---- Konfigurasi ----------------------------------------------------------------
+
+APP_ROOT = Path(__file__).resolve().parent
+UPLOAD_ROOT = APP_ROOT / "uploads"
+TRASH_DIR = UPLOAD_ROOT / ".trash"
+MAX_STORAGE_BYTES = 5 * 1024 * 1024 * 1024  # 5GB
+
+os.makedirs(UPLOAD_ROOT, exist_ok=True)
+os.makedirs(TRASH_DIR, exist_ok=True)
+
+app = Flask(
+    __name__,
+    template_folder=str(APP_ROOT / "templates"),
+    static_folder=str(APP_ROOT / "static")
+)
+
+app.secret_key = "supersecretkey123"
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "auth.login"
+
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id)
+
+# SIMPLE USER STORE
+USERS = {"admin": "admin1234"}
+
+# Register blueprints
+app.register_blueprint(main_bp)
+app.register_blueprint(auth_bp)
+
+# ---- Helper ---------------------------------------------------------------------
+
+def safe_path_join(root: Path, *parts):
+    """Pastikan path aman dan tidak keluar dari UPLOAD_ROOT."""
+    candidate = (root / Path(*parts)).resolve()
+    if root.resolve() in candidate.parents or candidate == root.resolve():
+        return candidate
+    return None
+
+def get_storage_usage_bytes():
+    total = 0
+    for p in UPLOAD_ROOT.rglob("*"):
+        if p.is_file():
+            total += p.stat().st_size
+    return total
+
+def format_bytes(n):
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if n < 1024:
+            return f"{n:.2f} {unit}"
+        n /= 1024
+    return f"{n:.2f} PB"
+
+@app.context_processor
+def inject_storage():
+    used = get_storage_usage_bytes()
+    return dict(
+        storage_used=used,
+        storage_total=MAX_STORAGE_BYTES,
+        storage_used_fmt=format_bytes(used)
+    )
+
+# ------------------------------------------------------------------------------
+# PREVIEW API
+# ------------------------------------------------------------------------------
+
+@app.route("/preview/<path:filename>")
+def preview(filename):
+    if "user" not in session:
+        return redirect(url_for("auth.login"))
+
+    safe = safe_path_join(UPLOAD_ROOT, filename)
+    if not safe or not safe.exists():
+        return jsonify({"ok": False}), 404
+
+    mime = mimetypes.guess_type(str(safe))[0] or ""
+    return jsonify({
+        "ok": True,
+        "mime": mime,
+        "path": str(safe.relative_to(UPLOAD_ROOT))
+    })
+
+# ------------------------------------------------------------------------------
+# MAIN ENTRY (biarkan blueprint menangani UI)
+# ------------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+
+app/requirements.txt
+Flask==2.2.5
+Flask-Login==0.6.3
+gunicorn==21.2.0
+
+nginx/default.conf
+server {
+    listen 80;
+
+    location / {
+        proxy_pass http://app:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /static/ {
+        alias /app/static/;
+    }
+
+    location /uploads/ {
+        alias /app/uploads/;
+    }
+}
+
+nginx/nginx.conf
+user  nginx;
+worker_processes  auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    keepalive_timeout  65;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+
+docker-compose.yml
+services:
+  app:
+    build: .
+    container_name: mini-cloud-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app
+      - ./app/uploads:/app/uploads
+
+  nginx:
+    image: nginx:alpine
+    container_name: mini-cloud-nginx
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./app/static:/app/static:ro
+      - ./app/uploads:/app/uploads:ro
+
+Dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY app/ /app/
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+
+

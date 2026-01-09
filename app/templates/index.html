@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+
+<button class="back-btn" onclick="history.back()">← Kembali</button>
+<h2>Daftar Folder</h2>
+<div class="breadcrumb">
+  <a href="{{ url_for('main.index') }}">Mini-Cloud</a>
+  {% if current_path != 'mini-cloud' %}
+    / {{ current_path }}
+  {% endif %}
+</div>
+<div class="grid files">
+  {% for d in folders %}
+  <div class="card file-card folder-card">
+
+    <div class="card-head">
+      <i class="fa-solid fa-folder fa-2x"></i>
+      <div class="card-name">{{ d.name }}</div>
+    </div>
+
+    <div class="card-actions">
+      <a href="{{ url_for('main.index', subpath=d.path) }}">
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+      <button onclick="deleteFile('{{ d.path }}', event)">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+  {% else %}
+    <p>Tidak ada folder</p>
+  {% endfor %}
+</div>
+
+<hr>
+
+<h2>Daftar File</h2>
+<div class="breadcrumb">
+  <a href="{{ url_for('main.index') }}">Mini-Cloud</a>
+  {% if current_path != 'mini-cloud' %}
+    / {{ current_path }}
+  {% endif %}
+</div>
+<hr>
+
+<div class="grid files">
+  {% for f in files %}
+<div class="card file-card">
+
+  <!-- KIRI -->
+  <div class="card-left">
+<i class="fa-solid 
+  {% if f.mime and f.mime.startswith('image/') %}fa-file-image
+  {% elif f.mime == 'application/pdf' %}fa-file-pdf
+  {% elif f.mime in ['application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'] %}fa-file-word
+  {% elif f.mime in ['application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] %}fa-file-excel
+  {% elif f.mime in ['application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation'] %}fa-file-powerpoint
+  {% else %}fa-file{% endif %}">
+</i>
+
+
+    <div class="file-info">
+      <div class="card-name">{{ f.name }}</div>
+      <div class="meta">{{ f.mtime | datetimeformat }}</div>
+    </div>
+  </div>
+
+  <!-- KANAN -->
+  <div class="card-right">
+  <button class="share-btn" data-path="{{ f.path }}" title="Bagikan">
+  <i class="fa-solid fa-share-nodes"></i>
+  </button>
+
+ <button class="favorite-btn {% if f.path in favorites %}active{% endif %}"
+        data-path="{{ f.path }}"
+        title="Favorit">
+  ★
+</button>
+
+
+    <div class="card-actions">
+      <a href="{{ url_for('main.download_file', filename=f.path) }}">
+        <i class="fa-solid fa-download"></i>
+      </a>
+      <button class="preview-btn" 
+              data-filename="{{ f.name }}" 
+              data-path="{{ f.path }}">
+        <i class="fa-solid fa-eye"></i>
+      </button>
+      <button onclick="deleteFile('{{ f.path }}', event)">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+  {% else %}
+    <p>Tidak ada file</p>
+  {% endfor %}
+</div>
+{% endblock %}

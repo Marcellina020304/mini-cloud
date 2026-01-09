@@ -1,0 +1,23 @@
+{% extends "base_public.html" %}
+{% block content %}
+<div class="login-page">
+  <div class="login-card">
+    <i class="fa-solid fa-cloud fa-3x"></i>
+    <h2>Mini-Cloud</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+      <button class="primary-btn" type="submit">Login</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

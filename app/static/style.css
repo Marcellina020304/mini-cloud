@@ -1,0 +1,156 @@
+:root{
+  --primary: #005eff;
+  --bg-soft: #cddfff;
+  --muted: #6b7280;
+  --white: #ffffff;
+  --card-shadow: rgba(0,0,0,0.06);
+}
+
+/* Basic layout */
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter, system-ui, Arial, sans-serif;background:var(--bg-soft);color:#0f172a}
+
+/* Sidebar */
+.sidebar{
+  width:350px;
+  background:var(--white);
+  position:fixed;
+  left:0;top:0;bottom:0;
+  padding:18px;
+  border-right:1px solid rgba(0,0,0,0.06);
+}
+.side-head h1{font-size:18px;margin:0;color:var(--primary)}
+.side-section{margin-top:18px}
+.side-section h2{font-size:13px;color:var(--muted);margin:8px 0}
+.side-section h3{font-size:13px;margin:6px 0}
+.side-section h4{font-size:10px;color:var(--muted);margin:8px 0}
+.file-row{display:flex;gap:8px;align-items:center}
+.file-row input[type="file"]{flex:1;padding:6px}
+.file-row input[type="text"]{flex:1;padding:8px;border:1px solid #e6edf9;border-radius:6px}
+.btn{background:var(--primary);color:white;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.upload-btn{background:var(--primary);color:white;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+.nav-link{display:block;color:#0f172a;text-decoration:none;padding:6px 0}
+
+/* Storage bar */
+.storage-row{display:flex;gap:8px;align-items:center}
+.storage-bar-outer{width:150px;height:10px;background:#eef6ff;border-radius:6px;margin-bottom:6px;overflow:hidden}
+.storage-bar-inner{height:10px;background:var(--primary);width:0%}
+
+/* Main content */
+.main{margin-left:360px;padding:28px}
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.title h2{margin:0}
+.path{font-size:12px;color:var(--muted)}
+hr{border:none;border-top:1px solid rgba(0,0,0,0.06);margin:12px 0}
+
+/* Grid & Card */
+.grid {display: flex;flex-wrap: wrap;gap: 16px;}
+.card {position: relative; background: white;padding: 14px;border-radius: 10px;box-shadow: 0 6px 12px var(--card-shadow);}
+
+.file-card {display: flex;align-items: center;justify-content: space-between;width: 100%;min-height: 80px;}
+.card-left {display: flex;align-items: center;gap: 12px;min-width: 0;}
+
+.card-left i {font-size: 28px;width: 32px;color: #475569;}
+
+.file-info {display: flex;flex-direction: column;min-width: 0;}
+
+.card-name {font-weight: 600;text-align: left; white-space: nowrap; overflow: hidden;text-overflow: ellipsis; max-width: 100%;}
+
+.meta {font-size: 12px;color: #64748b;}
+
+.card-right {position: relative; z-index: 5; display: flex;align-items: center;gap: 12px;}
+
+.favorite-btn {position: relative; z-index: 5;font-size: 20px; opacity:1; cursor: pointer; pointer-events: auto;}
+.favorite-btn.active {color: gold;opacity: 1;}
+
+.share-btn {background: none;border: none;font-size: 18px;cursor: pointer;opacity: 0.7;}
+
+.share-btn:hover {opacity: 1;color: var(--primary);}
+
+.card-actions {display: flex;gap: 10px;}
+
+.card-actions i {font-size: 16px;}
+
+.folder-card {justify-content: flex-start;gap: 12px;}
+
+.folder-card .card-head {display: flex;align-items: center;gap: 12px;}
+
+.folder-card .card-actions {margin-left: auto;}
+
+/* action menu */
+.action-btn{background:none;border:none;font-size:18px;cursor:pointer}
+.action-menu{position:absolute;right:10px;top:40px;display:none;background:white;border:1px solid rgba(0,0,0,0.06);box-shadow:0 6px 12px var(--card-shadow);border-radius:6px;overflow:hidden;z-index:20}
+.action-menu .menu-item{display:block;padding:8px 12px;text-decoration:none;color:#0f172a;border:none;background:none;width:100%;text-align:left;cursor:pointer}
+.action-menu .menu-item:hover{background:#f6f8ff}
+
+/* login page */
+.login-page{display:flex;align-items:center;justify-content:center;height:100vh}
+.login-card{background:white;padding:28px;border-radius:12px;box-shadow:0 12px 28px var(--card-shadow);text-align:center;width:360px}
+.login-card i{color:var(--primary)}
+.login-card input{width:100%;padding:10px;margin:10px 0;border-radius:6px;border:1px solid #e6edf9}
+.primary-btn{background:var(--primary);color:white;padding:10px 16px;border:none;border-radius:8px;cursor:pointer}
+
+/* modal */
+.modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-inner{background:white;padding:18px;border-radius:8px;max-width:90%;max-height:90%;overflow:auto;position:relative}
+.modal-close{position:absolute;right:8px;top:6px;border:none;background:none;font-size:22px;cursor:pointer}
+
+/* responsive */
+@media (max-width:900px){.file-card{width:100%;}}
+
+.upload-row {display: flex;align-items: center;gap: 2px;width: 100%;}
+.upload-row input[type="file"] {flex: 1;max-width: 100%;}
+.upload-btn {background-color: #005eff;border: none;padding: 6px 10px;border-radius: 6px;cursor: pointer;color: white;display: flex;align-items: center;}
+.upload-btn i {font-size: 16px;}
+
+/* Modal background & layout */
+.modal {display: none;position: fixed;top: 0;left: 0;width: 100%;height: 100%;background: rgba(0,0,0,0.7);justify-content: center;align-items: center;z-index: 1000;}
+
+/* Modal content container */
+.modal > div {background: #ffffff;width: 80%;height: 80%;display: flex;flex-direction: column;border-radius: 8px;box-shadow: 0 4px 12px rgba(0,0,0,0.3);    overflow: hidden;}
+
+/* Modal header */
+.modal > div > div:first-child {padding: 10px;display: flex;justify-content: space-between;align-items: center;background: #f1f1f1;border-bottom: 1px solid #ccc;font-family: sans-serif;}
+
+/* Header buttons */
+.modal button,
+.modal a {background: #e0e0e0;border: none;border-radius: 4px;padding: 4px 8px;margin-left: 4px;cursor: pointer;font-size: 14px;color: #333;text-decoration: none;}
+.modal button:hover,
+.modal a:hover {background: #d0d0d0;}
+
+/* Page indicator */
+#pageIndicator {font-weight: bold;color: #555;}
+
+/* Modal content (preview area) */
+#previewContent {flex: 1;overflow: auto;display: flex;justify-content: center;align-items: center;background: #fff;}
+
+/* Preview images / videos / canvas */
+#pv {max-width: 100%;max-height: 100%;display: block;}
+
+/* Placeholder & error messages */
+.preview-placeholder,
+.preview-error { font-size: 16px;color: #666;text-align: center;}
+
+/* Responsive for small screens */
+@media (max-width: 768px) {.modal > div {width: 95%;height: 90%; }
+    .modal button,
+    .modal a {padding: 3px 6px;font-size: 12px;}}
+
+.back-btn {background: var(--primary);color: white;border: none;padding: 6px 12px;border-radius: 6px;cursor: pointer;margin-bottom: 12px;}
+
+.back-btn:hover {background: #0041b3;}
+
+.breadcrumb {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.breadcrumb a {
+    text-decoration: none;
+    color: var(--primary);
+}
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
