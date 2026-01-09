@@ -495,9 +495,7 @@ def serve_public_file(filename):
 def preview_file(filename):
     safe = safe_path_join(UPLOAD_ROOT, filename)
     if not safe or not safe.exists():
-        return "File tidak ditemukan", 404
+        return "File not found", 404
 
-    public_url = url_for("main.serve_public_file", filename=filename, _external=True, t=int(time.time()))
-    return render_template("preview_file.html",
-                           file_url=public_url,
-                           filename=filename)
+    file_url = url_for("main.serve_public_file", filename=filename, _external=True)
+    return render_template("preview_file.html", file_url=file_url, filename=safe.name)
