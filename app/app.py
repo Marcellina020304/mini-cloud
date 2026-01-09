@@ -32,8 +32,8 @@ def create_app():
     app.config['MAX_STORAGE_BYTES'] = MAX_STORAGE_BYTES
 
     # register blueprints (import di sini untuk hindari circular import)
-    from routes.main import main_bp
-    from routes.auth import auth_bp
+    from app.routes.main import main_bp
+    from app.routes.auth import auth_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
 
