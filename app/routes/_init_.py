@@ -1,1 +1,1 @@
-# init file untuk package routes
+# app/routes/__init__.py
