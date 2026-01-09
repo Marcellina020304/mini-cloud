@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Preview File</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    html, body { margin:0; padding:0; height:100vh; width:100vw; }
+    #preview-container { width:100%; height:100%; display:flex; justify-content:center; align-items:center; }
+    iframe, #xlsx-preview, img, video, audio { width:100%; height:100%; border:none; }
+    video, audio { background:#000; }
+    img { object-fit:contain; }
+  </style>
+</head>
+<body>
+
+<div id="preview-container"></div>
+
+<script>
+const fileUrl = "{{ file_url }}";
+const filename = "{{ filename }}";
+const ext = filename.split('.').pop().toLowerCase();
+const container = document.getElementById("preview-container");
+
+function showDownloadLink() {
+    container.innerHTML = `<p>Preview tidak tersedia. <a href="${fileUrl}" target="_blank">Download</a></p>`;
+}
+
+// Office & PDF
+if(['docx','pptx','pdf','doc','ppt'].includes(ext)) {
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+    container.appendChild(iframe);
+
+// XLSX/XLS
+} else if(ext === 'xlsx' || ext === 'xls') {
+    const iframe = document.createElement('iframe');
+    container.appendChild(iframe);
+
+    fetch(fileUrl)
+    .then(res => res.arrayBuffer())
+    .then(data => {
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const html = XLSX.utils.sheet_to_html(workbook.Sheets[sheetName]);
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(html);
+        iframe.contentDocument.close();
+    })
+    .catch(err => {
+        console.error(err);
+        container.innerHTML = "<p>Gagal menampilkan XLSX</p>";
+    });
+
+// Image
+} else if(['png','jpg','jpeg','gif','bmp','webp'].includes(ext)) {
+    const img = document.createElement('img');
+    img.src = fileUrl;
+    container.appendChild(img);
+
+// Video
+} else if(['mp4','webm','ogg'].includes(ext)) {
+    const video = document.createElement('video');
+    video.src = fileUrl;
+    video.controls = true;
+    container.appendChild(video);
+
+// Audio
+} else if(['mp3','wav','ogg'].includes(ext)) {
+    const audio = document.createElement('audio');
+    audio.src = fileUrl;
+    audio.controls = true;
+    container.appendChild(audio);
+
+// File lain
+} else {
+    showDownloadLink();
+}
+</script>
+</body>
+</html>

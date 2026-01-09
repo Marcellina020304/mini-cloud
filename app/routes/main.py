@@ -490,8 +490,13 @@ def serve_public_file(filename):
     # as_attachment=False supaya Google Docs Viewer bisa fetch
     return send_file(file_path, as_attachment=False, mimetype=mimetype)
 
-
 @main_bp.route("/preview/<path:filename>")
 def preview_file(filename):
-    public_url = url_for("main.serve_public_file", filename=filename, _external=True)
-    return render_template("preview_office.html", file_url=public_url)
+    safe = safe_path_join(UPLOAD_ROOT, filename)
+    if not safe or not safe.exists():
+        return "File tidak ditemukan", 404
+
+    public_url = url_for("main.serve_public_file", filename=filename, _external=True, t=int(time.time()))
+    return render_template("preview_file.html",
+                           file_url=public_url,
+                           filename=filename)
