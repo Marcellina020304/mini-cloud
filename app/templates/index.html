@@ -82,11 +82,9 @@
       <a href="{{ url_for('main.download_file', filename=f.path) }}">
         <i class="fa-solid fa-download"></i>
       </a>
-      <button class="preview-btn" 
-              data-filename="{{ f.name }}" 
-              data-path="{{ f.path }}">
+      <a href="{{ url_for('main.preview_file', filename=f.path) }}" class="preview-btn" title="Preview">
         <i class="fa-solid fa-eye"></i>
-      </button>
+      </a>
       <button onclick="deleteFile('{{ f.path }}', event)">
         <i class="fa-solid fa-trash"></i>
       </button>
