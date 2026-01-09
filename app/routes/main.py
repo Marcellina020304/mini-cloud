@@ -20,14 +20,14 @@ def datetimeformat(value):
         return ''
     return datetime.fromtimestamp(value).strftime('%d-%m-%Y %H:%M')
 
-APP_ROOT = Path(__file__).resolve().parent
+APP_ROOT = Path(__file__).resolve().parents[2]
 UPLOAD_ROOT = APP_ROOT / "uploads"
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 TRASH_DIR = UPLOAD_ROOT / ".trash"
+os.makedirs(TRASH_DIR, exist_ok=True)
 FAVORITE_DIR = UPLOAD_ROOT / "favorit"
 os.makedirs(FAVORITE_DIR, exist_ok=True)
 FAV_FILE = FAVORITE_DIR / "favorites.json"
-UPLOAD_FOLDER = "app/uploads"
 SHARE_DIR = UPLOAD_ROOT / "share"
 os.makedirs(SHARE_DIR, exist_ok=True)
 SHARE_FILE = SHARE_DIR / "shares.json"
@@ -164,8 +164,6 @@ def index(subpath):
 
 @main_bp.route("/uploads/<path:filename>")
 def serve_uploads(filename):
-    if not ensure_logged_in():
-        return redirect(url_for("auth.login"))
     safe = safe_path_join(UPLOAD_ROOT, filename)
     if not safe or not safe.exists():
         return "Not found", 404
@@ -220,19 +218,20 @@ def upload_file_or_folder():
         if not raw_filename:
             continue
 
-       # secure semua bagian path
-    parts = [secure_filename(p) for p in raw_filename.split("/") if p != ""]
-    last = parts.pop()  # nama file terakhir
-    safe_rel_path = Path(*parts) / last
-    full_path = safe_dest / safe_rel_path
+        # secure semua bagian path
+        parts = [secure_filename(p) for p in raw_filename.split("/") if p != ""]
+        last = parts.pop()  # nama file terakhir
+        safe_rel_path = Path(*parts) / last
+        full_path = safe_dest / safe_rel_path
 
-    full_path.parent.mkdir(parents=True, exist_ok=True)
+        full_path.parent.mkdir(parents=True, exist_ok=True)
 
-    try:
-        f.save(str(full_path))
-        total_uploaded += 1
-    except Exception as e:
-        current_app.logger.exception("Gagal menyimpan file dari folder upload: %s", e)
+        try:
+            f.save(str(full_path))
+            total_uploaded += 1
+        except Exception as e:
+            current_app.logger.exception("Gagal menyimpan file dari folder upload: %s", e)
+
     flash(f"{total_uploaded} file berhasil di-upload.", "success")
     return redirect(request.referrer or url_for("main.index"))
 

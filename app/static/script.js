@@ -140,16 +140,22 @@ function openPreview(filename, reqPath) {
             } else if (
                 filename.endsWith(".docx") ||
                 filename.endsWith(".xlsx") ||
-                filename.endsWith(".pptx")
+                filename.endsWith(".pptx") ||
+                filename.endsWith(".doc")  ||
+                filename.endsWith(".xls")  ||
+                filename.endsWith(".ppt")
             ) {
                 const iframe = document.createElement("iframe");
-                iframe.id = "pv";
-                iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(location.origin + url)}`;
-                iframe.style.border = "none";
-                iframe.style.width = "100%";
-                iframe.style.height = "100%";
-                content.appendChild(iframe);
-                pageIndicator.textContent = "1/1";
+            iframe.id = "pv";
+
+            // encode full URL ke Office Viewer
+            iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(location.origin + '/uploads/' + reqPath)}`;
+
+            iframe.style.border = "none";
+            iframe.style.width = "100%";
+            iframe.style.height = "100%";
+            content.appendChild(iframe);
+            pageIndicator.textContent = "1/1";
 
             // CSV / TXT
             } else if (
@@ -244,7 +250,8 @@ document.addEventListener("keydown", (e) => { if(e.key==="Escape") document.getE
 // TOMBOL PREVIEW LISTENER (index.html)
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.preview-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault(); // penting supaya ga buka tab baru
             openPreview(btn.dataset.filename, btn.dataset.path);
         });
     });
