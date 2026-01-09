@@ -220,26 +220,19 @@ def upload_file_or_folder():
         if not raw_filename:
             continue
 
-        parts = [p for p in raw_filename.split("/") if p != ""]
-        if not parts:
-            continue
+       # secure semua bagian path
+    parts = [secure_filename(p) for p in raw_filename.split("/") if p != ""]
+    last = parts.pop()  # nama file terakhir
+    safe_rel_path = Path(*parts) / last
+    full_path = safe_dest / safe_rel_path
 
-        last = secure_filename(parts[-1])
-        if not last:
-            continue
+    full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        safe_rel_path = Path(*parts[:-1]) / last
-        full_path = safe_dest / safe_rel_path
-
-
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            f.save(str(full_path))
-            total_uploaded += 1
-        except Exception as e:
-            current_app.logger.exception("Gagal menyimpan file dari folder upload: %s", e)
-
+    try:
+        f.save(str(full_path))
+        total_uploaded += 1
+    except Exception as e:
+        current_app.logger.exception("Gagal menyimpan file dari folder upload: %s", e)
     flash(f"{total_uploaded} file berhasil di-upload.", "success")
     return redirect(request.referrer or url_for("main.index"))
 
@@ -497,5 +490,8 @@ def preview_file(filename):
     if not safe or not safe.exists():
         return "File not found", 404
 
-    file_url = url_for("main.serve_public_file", filename=filename, _external=True)
+    # gunakan path relatif lengkap agar serve_public_file bisa akses
+    rel_path = str(safe.relative_to(UPLOAD_ROOT)).replace("\\","/")
+    file_url = url_for("main.serve_public_file", filename=rel_path, _external=True)
+
     return render_template("preview_file.html", file_url=file_url, filename=safe.name)
