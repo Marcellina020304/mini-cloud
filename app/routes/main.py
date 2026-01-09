@@ -1,6 +1,6 @@
 from flask import (
     Blueprint, render_template, request, redirect, url_for,
-    session, send_from_directory, current_app, flash, jsonify
+    session, send_file, send_from_directory, current_app, flash, jsonify
 )
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -11,7 +11,8 @@ import secrets
 from flask import send_file
 from urllib.parse import quote
 
-main_bp = Blueprint("main", __name__, url_prefix="")
+
+main_bp = Blueprint("main", __name__)
 
 @main_bp.app_template_filter('datetimeformat')
 def datetimeformat(value):
@@ -19,7 +20,7 @@ def datetimeformat(value):
         return ''
     return datetime.fromtimestamp(value).strftime('%d-%m-%Y %H:%M')
 
-APP_ROOT = Path(__file__).resolve().parent.parent
+APP_ROOT = Path(__file__).resolve().parent
 UPLOAD_ROOT = APP_ROOT / "uploads"
 TRASH_DIR = UPLOAD_ROOT / ".trash"
 FAVORITE_DIR = UPLOAD_ROOT / "favorit"
@@ -463,40 +464,34 @@ def serve_file(filename):
 
 @main_bp.route("/public/<path:filename>")
 def serve_public_file(filename):
-    safe = safe_path_join(current_app.config["UPLOAD_ROOT"], filename)
-    if not safe or not safe.exists():
+    file_path = UPLOAD_ROOT / filename
+    if not file_path.exists():
         return "File not found", 404
 
-    # Tentukan MIME berdasarkan ekstensi
-    ext = safe.suffix.lower()
+    ext = file_path.suffix.lower()
     if ext == ".docx":
         mimetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     elif ext == ".pptx":
         mimetype = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     elif ext == ".xlsx":
         mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    elif ext == ".doc":
+        mimetype = "application/msword"
+    elif ext == ".ppt":
+        mimetype = "application/vnd.ms-powerpoint"
+    elif ext == ".xls":
+        mimetype = "application/vnd.ms-excel"
+    elif ext == ".pdf":
+        mimetype = "application/pdf"
     else:
-        mimetype, _ = mimetypes.guess_type(str(safe))
+        mimetype, _ = mimetypes.guess_type(str(file_path))
         mimetype = mimetype or "application/octet-stream"
 
-    return send_from_directory(
-        safe.parent,
-        safe.name,
-        as_attachment=False,  # penting! agar Google Docs Viewer bisa fetch
-        mimetype=mimetype
-    )
+    # as_attachment=False supaya Google Docs Viewer bisa fetch
+    return send_file(file_path, as_attachment=False, mimetype=mimetype)
+
+
 @main_bp.route("/preview/<path:filename>")
 def preview_file(filename):
-    # URL publik full (ngrok / server)
-    public_url = url_for(
-        "main.serve_public_file",
-        filename=filename,
-        _external=True
-    )
-
-    return render_template(
-        "preview_office.html",
-        file_url=public_url
-    )
-
-
+    public_url = url_for("main.serve_public_file", filename=filename, _external=True)
+    return render_template("preview_office.html", file_url=public_url)
