@@ -146,16 +146,17 @@ function openPreview(filename, reqPath) {
                 filename.endsWith(".ppt")
             ) {
                 const iframe = document.createElement("iframe");
-            iframe.id = "pv";
+                iframe.id = "pv";
 
-            // encode full URL ke Office Viewer
-            iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(location.origin + '/uploads/' + reqPath)}`;
+                // pakai URL publik lengkap
+                const publicUrl = `${location.origin}/public/${reqPath}`;
+                iframe.src = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(publicUrl)}`;
 
-            iframe.style.border = "none";
-            iframe.style.width = "100%";
-            iframe.style.height = "100%";
-            content.appendChild(iframe);
-            pageIndicator.textContent = "1/1";
+                iframe.style.border = "none";
+                iframe.style.width = "100%";
+                iframe.style.height = "100%";
+                content.appendChild(iframe);
+                pageIndicator.textContent = "1/1";
 
             // CSV / TXT
             } else if (

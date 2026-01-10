@@ -10,9 +10,9 @@ import json
 import secrets
 from flask import send_file
 from urllib.parse import quote
+from flask import Blueprint
 
-
-main_bp = Blueprint("main", __name__)
+main_bp = Blueprint("main", __name__, template_folder="../templates", static_folder="../static")
 
 @main_bp.app_template_filter('datetimeformat')
 def datetimeformat(value):
