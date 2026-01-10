@@ -20,7 +20,7 @@ def datetimeformat(value):
         return ''
     return datetime.fromtimestamp(value).strftime('%d-%m-%Y %H:%M')
 
-APP_ROOT = Path(__file__).resolve().parent
+APP_ROOT = Path(__file__).resolve().parent.parent.parent 
 UPLOAD_ROOT = APP_ROOT / "uploads"
 os.makedirs(UPLOAD_ROOT, exist_ok=True)
 TRASH_DIR = UPLOAD_ROOT / ".trash"
