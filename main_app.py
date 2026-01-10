@@ -9,6 +9,8 @@ import shutil
 import time
 from flask import Flask, redirect, url_for, session
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 # --- PAKSA ROOT ADA DI PATH ---
 APP_ROOT = Path(__file__).resolve().parent
 if str(APP_ROOT) not in sys.path:
